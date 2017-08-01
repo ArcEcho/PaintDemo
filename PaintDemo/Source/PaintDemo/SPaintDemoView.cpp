@@ -8,9 +8,8 @@
 #include "SBorder.h"
 #include "CoreStyle.h"
 #include "SPaintDemoRuler.h"
+#include "SPaintDemoZoomPan.h"
 
-
-BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SPaintDemoView::Construct(const FArguments& InArgs)
 {
     SPaintDemoSurface::Construct(
@@ -19,6 +18,24 @@ void SPaintDemoView::Construct(const FArguments& InArgs)
         .Content()
         [
             SNew(SOverlay)
+            + SOverlay::Slot()
+            .HAlign(HAlign_Fill)
+            .VAlign(VAlign_Fill)
+            [
+                SAssignNew(PreviewHitTestRoot, SPaintDemoZoomPan)
+                .Visibility(EVisibility::HitTestInvisible)
+                .ZoomAmount(this, &SPaintDemoView::GetZoomAmount)
+                .ViewOffset(this, &SPaintDemoView::GetViewOffset)
+                [
+                    SNew(SOverlay)
+                    + SOverlay::Slot()
+                    [
+                        SAssignNew(PreviewAreaConstraint, SBox)
+                        .WidthOverride(this, &SPaintDemoView::GetPreviewAreaWidth)
+                        .HeightOverride(this, &SPaintDemoView::GetPreviewAreaHeight)
+                    ]
+                ]
+            ]
             + SOverlay::Slot()
             .HAlign(HAlign_Fill)
             .VAlign(VAlign_Fill)
@@ -52,21 +69,23 @@ void SPaintDemoView::Construct(const FArguments& InArgs)
         ]
    );
 
-   bIsOriginGeometryCached = false;
 }
 
 void SPaintDemoView::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
-    if (!bIsOriginGeometryCached)
-    {
-        CachedOriginGeometry = AllottedGeometry;
-        bIsOriginGeometryCached = true;
-    }
 
     SPaintDemoSurface::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 
-    FGeometry RootGeometry = CachedOriginGeometry;
+    // Perform an arrange children pass to cache the geometry of all widgets so that we can query it later.
+    {
+        CachedWidgetGeometry.Reset();
+        FArrangedWidget WindowWidgetGeometry(PreviewHitTestRoot.ToSharedRef(), AllottedGeometry);
+        PopulateWidgetGeometryCache(WindowWidgetGeometry);
+    }
+
+
     // Compute the origin in absolute space.
+    FGeometry RootGeometry = CachedWidgetGeometry.FindChecked(PreviewAreaConstraint.ToSharedRef()).Geometry;
     FVector2D AbsoluteOrigin = MakeGeometryWindowLocal(RootGeometry).LocalToAbsolute(FVector2D::ZeroVector);
 
     TopRuler->SetRuling(AbsoluteOrigin, 1.0f / GetZoomAmount());
@@ -140,4 +159,29 @@ FGeometry SPaintDemoView::MakeGeometryWindowLocal(const FGeometry& WidgetGeometr
     }
 
     return NewGeometry;
+}
+
+void SPaintDemoView::PopulateWidgetGeometryCache(FArrangedWidget& Root)
+{
+    FArrangedChildren ArrangedChildren(EVisibility::All);
+    Root.Widget->ArrangeChildren(Root.Geometry, ArrangedChildren);
+
+    CachedWidgetGeometry.Add(Root.Widget, Root);
+
+    // A widget's children are implicitly Z-ordered from first to last
+    for (int32 ChildIndex = ArrangedChildren.Num() - 1; ChildIndex >= 0; --ChildIndex)
+    {
+        FArrangedWidget& SomeChild = ArrangedChildren[ChildIndex];
+        PopulateWidgetGeometryCache(SomeChild);
+    }
+}
+
+FOptionalSize SPaintDemoView::GetPreviewAreaWidth() const
+{
+    return 100;
+}
+
+FOptionalSize SPaintDemoView::GetPreviewAreaHeight() const
+{
+    return 100;
 }

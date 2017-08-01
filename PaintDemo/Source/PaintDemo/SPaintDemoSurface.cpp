@@ -53,13 +53,13 @@ struct FFixedZoomLevelsContainer : public FZoomLevelsContainer
         ZoomLevels.Add(FZoomLevelEntry(8.000f, FText::FromString("+15")));
     }
 
-    float GetZoomAmount(int32 InZoomLevel) const 
+    float GetZoomAmount(int32 InZoomLevel) const
     {
         checkSlow(ZoomLevels.IsValidIndex(InZoomLevel));
         return ZoomLevels[InZoomLevel].ZoomAmount;
     }
 
-    int32 GetNearestZoomLevel(float InZoomAmount) const 
+    int32 GetNearestZoomLevel(float InZoomAmount) const
     {
         for (int32 ZoomLevelIndex = 0; ZoomLevelIndex < GetNumZoomLevels(); ++ZoomLevelIndex)
         {
@@ -72,18 +72,18 @@ struct FFixedZoomLevelsContainer : public FZoomLevelsContainer
         return GetDefaultZoomLevel();
     }
 
-    FText GetZoomText(int32 InZoomLevel) const 
+    FText GetZoomText(int32 InZoomLevel) const
     {
         checkSlow(ZoomLevels.IsValidIndex(InZoomLevel));
         return ZoomLevels[InZoomLevel].DisplayText;
     }
 
-    int32 GetNumZoomLevels() const 
+    int32 GetNumZoomLevels() const
     {
         return ZoomLevels.Num();
     }
 
-    int32 GetDefaultZoomLevel() const 
+    int32 GetDefaultZoomLevel() const
     {
         return 10;
     }
@@ -240,41 +240,14 @@ FReply SPaintDemoSurface::OnMouseMove(const FGeometry& MyGeometry, const FPointe
     const bool bIsLeftMouseButtonDown = MouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton);
     const FModifierKeysState ModifierKeysState = FSlateApplication::Get().GetModifierKeys();
 
-    if (HasMouseCapture())
+    if (HasMouseCapture() && bIsRightMouseButtonDown)
     {
-        const FVector2D CursorDelta = MouseEvent.GetCursorDelta();
+        FReply ReplyState = FReply::Handled();
 
-        const bool bShouldZoom = bIsRightMouseButtonDown && FSlateApplication::Get().IsUsingTrackpad();
-        if (bShouldZoom)
-        {
-            FReply ReplyState = FReply::Handled();
+        bIsPanning = true;
+        ViewOffset = ViewOffsetStart + ((MouseDownPositionAbsolute - MouseEvent.GetScreenSpacePosition()) / MyGeometry.Scale) / GetZoomAmount();
 
-            TotalMouseDeltaY += CursorDelta.Y;
-
-            const int32 ZoomLevelDelta = FMath::FloorToInt(TotalMouseDeltaY * 0.05f);
-
-            // Get rid of mouse movement that's been 'used up' by zooming
-            if (ZoomLevelDelta != 0)
-            {
-                TotalMouseDeltaY -= (ZoomLevelDelta / 0.05f);
-            }
-
-            // Perform zoom centered on the cached start offset
-            ChangeZoomLevel(ZoomLevelDelta, ZoomStartOffset, MouseEvent.IsControlDown());
-
-            bIsPanning = false;
-
-            return ReplyState;
-        }
-        else if (bIsRightMouseButtonDown)
-        {
-            FReply ReplyState = FReply::Handled();
-
-            bIsPanning = true;
-            ViewOffset = ViewOffsetStart + ((MouseDownPositionAbsolute - MouseEvent.GetScreenSpacePosition()) / MyGeometry.Scale) / GetZoomAmount();
-
-            return ReplyState;
-        }
+        return ReplyState;
     }
 
     return FReply::Unhandled();
