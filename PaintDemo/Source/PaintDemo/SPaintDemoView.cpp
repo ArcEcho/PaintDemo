@@ -8,7 +8,7 @@
 #include "SBorder.h"
 #include "CoreStyle.h"
 #include "SPaintDemoRuler.h"
-#include "SPaintDemoZoomPan.h"
+#include "SCanvas.h"
 
 void SPaintDemoView::Construct(const FArguments& InArgs)
 {
@@ -22,24 +22,6 @@ void SPaintDemoView::Construct(const FArguments& InArgs)
             .HAlign(HAlign_Fill)
             .VAlign(VAlign_Fill)
             [
-                SAssignNew(PreviewHitTestRoot, SPaintDemoZoomPan)
-                .Visibility(EVisibility::HitTestInvisible)
-                .ZoomAmount(this, &SPaintDemoView::GetZoomAmount)
-                .ViewOffset(this, &SPaintDemoView::GetViewOffset)
-                [
-                    SNew(SOverlay)
-                    + SOverlay::Slot()
-                    [
-                        SAssignNew(PreviewAreaConstraint, SBox)
-                        .WidthOverride(this, &SPaintDemoView::GetPreviewAreaWidth)
-                        .HeightOverride(this, &SPaintDemoView::GetPreviewAreaHeight)
-                    ]
-                ]
-            ]
-            + SOverlay::Slot()
-            .HAlign(HAlign_Fill)
-            .VAlign(VAlign_Fill)
-            [
                 SNew(SGridPanel)
                 .FillColumn(1, 1.0f)
                 .FillRow(1, 1.0f)
@@ -49,7 +31,7 @@ void SPaintDemoView::Construct(const FArguments& InArgs)
                 [
                     SNew(SBorder)
                     .BorderImage(FCoreStyle::Get().GetBrush("GenericWhiteBox"))
-                .BorderBackgroundColor(FLinearColor(FColor(48, 48, 48)))
+                    .BorderBackgroundColor(FLinearColor(FColor(48, 48, 48)))
                 ]
 
                 // Top Ruler
@@ -76,17 +58,8 @@ void SPaintDemoView::Tick(const FGeometry& AllottedGeometry, const double InCurr
 
     SPaintDemoSurface::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 
-    // Perform an arrange children pass to cache the geometry of all widgets so that we can query it later.
-    {
-        CachedWidgetGeometry.Reset();
-        FArrangedWidget WindowWidgetGeometry(PreviewHitTestRoot.ToSharedRef(), AllottedGeometry);
-        PopulateWidgetGeometryCache(WindowWidgetGeometry);
-    }
-
-
-    // Compute the origin in absolute space.
-    FGeometry RootGeometry = CachedWidgetGeometry.FindChecked(PreviewAreaConstraint.ToSharedRef()).Geometry;
-    FVector2D AbsoluteOrigin = MakeGeometryWindowLocal(RootGeometry).LocalToAbsolute(FVector2D::ZeroVector);
+    FGeometry RootGeometry = AllottedGeometry;
+    FVector2D AbsoluteOrigin = Inverse(ViewOffset) * GetZoomAmount() * AllottedGeometry.Scale;
 
     TopRuler->SetRuling(AbsoluteOrigin, 1.0f / GetZoomAmount());
     SideRuler->SetRuling(AbsoluteOrigin, 1.0f / GetZoomAmount());
@@ -95,7 +68,7 @@ void SPaintDemoView::Tick(const FGeometry& AllottedGeometry, const double InCurr
     {
         // Get cursor in absolute window space.
         FVector2D CursorPos = FSlateApplication::Get().GetCursorPos();
-        CursorPos = MakeGeometryWindowLocal(RootGeometry).LocalToAbsolute(RootGeometry.AbsoluteToLocal(CursorPos));
+        CursorPos = MakeGeometryWindowLocal(AllottedGeometry).LocalToAbsolute(AllottedGeometry.AbsoluteToLocal(CursorPos));
 
         TopRuler->SetCursor(CursorPos);
         SideRuler->SetCursor(CursorPos);
@@ -154,34 +127,11 @@ FGeometry SPaintDemoView::MakeGeometryWindowLocal(const FGeometry& WidgetGeometr
     {
         TSharedRef<SWindow> CurrentWindowRef = WidgetWindow.ToSharedRef();
 
-        NewGeometry.AppendTransform(FSlateLayoutTransform(Inverse(CurrentWindowRef->GetPositionInScreen())));
-        //NewGeometry.AppendTransform(Inverse(CurrentWindowRef->GetLocalToScreenTransform()));
+        FVector2D PositionInScreen = CurrentWindowRef->GetPositionInScreen();
+        FVector2D PositionInScreenInverse = Inverse(PositionInScreen);
+        FSlateLayoutTransform SlateLayoutTransfrom = FSlateLayoutTransform(PositionInScreenInverse);
+        NewGeometry.AppendTransform(SlateLayoutTransfrom);
     }
 
     return NewGeometry;
-}
-
-void SPaintDemoView::PopulateWidgetGeometryCache(FArrangedWidget& Root)
-{
-    FArrangedChildren ArrangedChildren(EVisibility::All);
-    Root.Widget->ArrangeChildren(Root.Geometry, ArrangedChildren);
-
-    CachedWidgetGeometry.Add(Root.Widget, Root);
-
-    // A widget's children are implicitly Z-ordered from first to last
-    for (int32 ChildIndex = ArrangedChildren.Num() - 1; ChildIndex >= 0; --ChildIndex)
-    {
-        FArrangedWidget& SomeChild = ArrangedChildren[ChildIndex];
-        PopulateWidgetGeometryCache(SomeChild);
-    }
-}
-
-FOptionalSize SPaintDemoView::GetPreviewAreaWidth() const
-{
-    return 100;
-}
-
-FOptionalSize SPaintDemoView::GetPreviewAreaHeight() const
-{
-    return 100;
 }

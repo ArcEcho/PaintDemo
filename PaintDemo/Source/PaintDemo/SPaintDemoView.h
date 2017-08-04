@@ -6,7 +6,6 @@
 #include "SPaintDemoSurface.h"
 
 class SPaintDemoRuler;
-class SPaintDemoZoomPan;
 class SBox;
 
 /**
@@ -33,25 +32,12 @@ public:
     EVisibility GetRulerVisibility();
 
     FGeometry MakeGeometryWindowLocal(const FGeometry& WidgetGeometry) const;
-
-    void PopulateWidgetGeometryCache(FArrangedWidget& Root);
-
-    /** The width of the preview screen for the UI */
-    FOptionalSize GetPreviewAreaWidth() const;
-
-    /** The height of the preview screen for the UI */
-    FOptionalSize GetPreviewAreaHeight() const;
-
 private:
     /** The ruler bar at the top of the designer. */
     TSharedPtr<SPaintDemoRuler> TopRuler;
 
     /** The ruler bar on the left side of the designer. */
     TSharedPtr<SPaintDemoRuler> SideRuler;
-
-    TSharedPtr<SPaintDemoZoomPan> PreviewHitTestRoot;
-
-    TSharedPtr<SBox> PreviewAreaConstraint;
 
     TMap<TSharedRef<SWidget>, FArrangedWidget> CachedWidgetGeometry;
 };

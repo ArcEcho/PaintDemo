@@ -208,6 +208,10 @@ int32 SPaintDemoRuler::DrawTicks(FSlateWindowElementList& OutDrawElements, const
                     :
                     FVector2D(FMath::Abs(InArgs.AllottedGeometry.Size.X - (InArgs.MajorTickHeight + TextSize.X)), XPos - (TextSize.Y*0.5f));
 
+                //To distinguish positive and negative parts of the ruler.
+                //The negative sign is not quiet suitable when this ruler is vertical.
+                FLinearColor TextColor = Number < 0 ? FLinearColor::Red : FLinearColor::Blue;
+
                 FSlateDrawElement::MakeText(
                     OutDrawElements,
                     InArgs.StartLayer + 1,
@@ -216,7 +220,7 @@ int32 SPaintDemoRuler::DrawTicks(FSlateWindowElementList& OutDrawElements, const
                     SmallLayoutFont,
                     InArgs.ClippingRect,
                     InArgs.DrawEffects,
-                    InArgs.TextColor
+                    TextColor
                 );
             }
         }

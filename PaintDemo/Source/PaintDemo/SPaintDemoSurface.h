@@ -107,6 +107,7 @@ protected:
     virtual float GetGridScaleAmount() const;
     virtual int32 GetGraphRulePeriod() const;
     virtual int32 GetSnapGridSize() const;
+    void ConstructSequence();
 
 protected:
     /** The position within the graph at which the user is looking */
@@ -153,14 +154,14 @@ protected:
     /**  */
     FVector2D MouseDownPositionAbsolute;
 
-    /** Cumulative magnify delta from trackpad gesture */
-    float TotalGestureMagnify;
-
     /** Does the user need to press Control in order to over-zoom. */
     bool bRequireControlToOverZoom;
 
     /** Cached geometry for use within the active timer */
     FGeometry CachedGeometry;
+
+    FCurveSequence Sequence;
+    FCurveHandle Curve;
 
 private:
     /** Active timer that handles deferred zooming until the target zoom is reached */
@@ -171,4 +172,7 @@ private:
 
     // A flag noting if we have a pending zoom to extents operation to perform next tick.
     bool bDeferredZoomToExtents;
+
+    FVector2D TestLinePointA;
+    FVector2D TestLinePointB;
 };

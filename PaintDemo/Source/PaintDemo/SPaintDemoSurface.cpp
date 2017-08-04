@@ -3,6 +3,7 @@
 #include "SPaintDemoSurface.h"
 #include "SlateOptMacros.h"
 #include "PaintDemoStyle.h"
+#include "UnrealMathUtility.h"
 
 #define LOCTEXT_NAMESPACE "PaintDemo"
 
@@ -126,7 +127,6 @@ void SPaintDemoSurface::Construct(const FArguments& InArgs)
     ZoomTargetBottomRight = FVector2D::ZeroVector;
 
     ZoomToFitPadding = FVector2D(100, 100);
-    TotalGestureMagnify = 0.0f;
 
     TotalMouseDeltaY = 0.0f;
     ZoomStartOffset = FVector2D::ZeroVector;
@@ -135,6 +135,12 @@ void SPaintDemoSurface::Construct(const FArguments& InArgs)
         [
             InArgs._Content.Widget
         ];
+
+    TestLinePointA = FVector2D::ZeroVector;
+    TestLinePointB = FVector2D::ZeroVector;
+
+
+    ConstructSequence();
 }
 
 EActiveTimerReturnType SPaintDemoSurface::HandleZoomToFit(double InCurrentTime, float InDeltaTime)
@@ -174,6 +180,19 @@ void SPaintDemoSurface::Tick(const FGeometry& AllottedGeometry, const double InC
             RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SPaintDemoSurface::HandleZoomToFit));
         }
     }
+
+
+    static float AccTime = 0.0f;
+    AccTime += InDeltaTime;
+    TestLinePointA = FVector2D(400.0f, 400.0f);
+    TestLinePointB.X = 200.0f * FMath::Sin(AccTime) + 400.0f;
+    TestLinePointB.Y = 200.0f * FMath::Cos(AccTime)+ 400.0f;
+
+    const FVector2D ZeroSpace = GraphCoordToPanelCoord(FVector2D::ZeroVector);
+    TestLinePointA = GraphCoordToPanelCoord(TestLinePointA);
+    TestLinePointB = GraphCoordToPanelCoord(TestLinePointB);
+
+    UE_LOG(LogTemp, Log, TEXT("%f %f %f %s"), InCurrentTime, InDeltaTime, AccTime, *ZeroSpace.ToString());
 }
 
 FCursorReply SPaintDemoSurface::OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const
@@ -192,6 +211,32 @@ int32 SPaintDemoSurface::OnPaint(const FPaintArgs& Args, const FGeometry& Allott
     PaintBackgroundAsLines(BackgroundImage, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId);
 
     SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+
+    const float Phase = Curve.GetLerp() * 2 * PI;
+
+    TArray<FVector2D> LinePoints;
+    LinePoints.AddUninitialized(2);
+    LinePoints[0] = TestLinePointA;
+    LinePoints[1] = TestLinePointB;
+    
+    FSlateDrawElement::MakeLines(
+        OutDrawElements,
+        LayerId,
+        AllottedGeometry.ToPaintGeometry(),
+        LinePoints,
+        MyClippingRect,
+        ESlateDrawEffect::None,
+        FLinearColor::Red
+    );
+
+    //FSlateDrawElement::MakeRotatedBox(
+    //    OutDrawElements,
+    //    LayerId,
+    //    AllottedGeometry.ToPaintGeometry(),
+    //    
+    //    );
+
+
 
     return LayerId;
 }
@@ -462,7 +507,14 @@ int32 SPaintDemoSurface::GetGraphRulePeriod() const
 
 int32 SPaintDemoSurface::GetSnapGridSize() const
 {
-    return 16;
+    return 10;
+}
+
+void SPaintDemoSurface::ConstructSequence()
+{
+    Sequence = FCurveSequence();
+    Curve = Sequence.AddCurve(0.f, 1.0f);
+    Sequence.Play(this->AsShared(), true);
 }
 
 float SPaintDemoSurface::GetGridScaleAmount() const
@@ -480,13 +532,13 @@ void SPaintDemoSurface::PaintBackgroundAsLines(const FSlateBrush* BackgroundImag
     const FLinearColor RegularColor(FPaintDemoStyle::Get().GetColor("GridLineColor"));
     const FLinearColor RuleColor(FPaintDemoStyle::Get().GetColor("GridRuleColor"));
     const FLinearColor CenterColor(FPaintDemoStyle::Get().GetColor("GridCenterColor"));
-    const float GraphSmallestGridSize = 8.0f;
+    const float GraphSmallestGridSize = 10.0f;
     const float RawZoomFactor = GetZoomAmount();
     const float NominalGridSize = GetSnapGridSize() * GetGridScaleAmount();
 
     float ZoomFactor = RawZoomFactor;
     float Inflation = 1.0f;
-    while (ZoomFactor*Inflation*NominalGridSize <= GraphSmallestGridSize)
+    while (ZoomFactor * Inflation*NominalGridSize <= GraphSmallestGridSize)
     {
         Inflation *= 2.0f;
     }

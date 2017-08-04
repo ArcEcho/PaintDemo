@@ -72,7 +72,7 @@ TSharedRef<FSlateStyleSet> FPaintDemoStyle::Create()
     Style.Set("GridRuleColor", FLinearColor(0.008f, 0.008f, 0.008f));
     Style.Set("GridCenterColor", FLinearColor(0.000f, 0.000f, 0.000f));
 
-    Style.Set("GridRulePeriod", 8.0f); // should be a strictly positive integral value
+    Style.Set("GridRulePeriod", 10.0f); // should be a strictly positive integral value
 
 
     return StyleRef;
