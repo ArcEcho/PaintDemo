@@ -200,13 +200,13 @@ int32 SPaintDemoSurface::OnPaint(const FPaintArgs& Args, const FGeometry& Allott
     PaintBackgroundAsLines(BackgroundImage, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId);
 
     SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
-    
-    for(auto & Line : LineList)
+
+    for (auto & Line : LineList)
     {
-        
+
         TArray<FVector2D> LinePoints;
         LinePoints.AddUninitialized(2);
-        LinePoints[0] = GraphCoordToPanelCoord( Line.Key);
+        LinePoints[0] = GraphCoordToPanelCoord(Line.Key);
         LinePoints[1] = GraphCoordToPanelCoord(Line.Value);
 
         FSlateDrawElement::MakeLines(
@@ -219,22 +219,168 @@ int32 SPaintDemoSurface::OnPaint(const FPaintArgs& Args, const FGeometry& Allott
             FLinearColor::Red
         );
     }
-   
-    FVector2D LocalSize{100.0f, 200.0f};
-    FVector2D PositionInGraphCoord{ 10.0f, 10.0f };
-    LocalSize *= GetZoomAmount();
-    FVector2D PositionInPanelCoord = GraphCoordToPanelCoord(PositionInGraphCoord);
-    FSlateLayoutTransform LayoutTransform{ PositionInPanelCoord };
-    FGeometry BoxGeo = AllottedGeometry.MakeChild(LocalSize, LayoutTransform);
 
-    const FSlateBrush* BoxBrush = FPaintDemoStyle::Get().GetBrush(TEXT("Box"));
-    FSlateDrawElement::MakeBox(
-        OutDrawElements,
-        LayerId,
-        BoxGeo.ToPaintGeometry(),
-        BoxBrush,
-        MyClippingRect
-    );
+    {
+        FVector2D LocalSize{ 100.0f, 200.0f };
+        FVector2D PositionInGraphCoord{ 10.0f, 10.0f };
+        LocalSize *= GetZoomAmount();
+        FVector2D PositionInPanelCoord = GraphCoordToPanelCoord(PositionInGraphCoord);
+        FSlateLayoutTransform LayoutTransform{ PositionInPanelCoord };
+        FGeometry BoxGeo = AllottedGeometry.MakeChild(LocalSize, LayoutTransform);
+
+        const FSlateBrush* BoxBrush = FPaintDemoStyle::Get().GetBrush(TEXT("Box"));
+        FSlateDrawElement::MakeBox(
+            OutDrawElements,
+            LayerId,
+            BoxGeo.ToPaintGeometry(),
+            BoxBrush,
+            MyClippingRect
+        );
+    }
+
+    {
+        FVector2D LocalSize{ 300.0f, 300.0f };
+        FVector2D PositionInGraphCoord{ 500.0f, 500.0f };
+        LocalSize *= GetZoomAmount();
+        FVector2D PositionInPanelCoord = GraphCoordToPanelCoord(PositionInGraphCoord);
+        FSlateLayoutTransform LayoutTransform{ PositionInPanelCoord };
+        FGeometry BoxGeo = AllottedGeometry.MakeChild(LocalSize, LayoutTransform);
+
+        const FSlateBrush* BoxBrush = FPaintDemoStyle::Get().GetBrush(TEXT("Box"));
+
+        FSlateDrawElement::MakeRotatedBox(
+            OutDrawElements,
+            LayerId,
+            BoxGeo.ToPaintGeometry(),
+            BoxBrush,
+            MyClippingRect,
+            ESlateDrawEffect::None,
+            45.0f
+        );
+    }
+
+    {
+        const float Radius = 50.0f;
+        const FVector2D Center = FVector2D(100, 100);
+
+        const FSlateBrush* MyBrush = FPaintDemoStyle::Get().GetBrush("TestCircleColor");
+
+        FSlateShaderResourceProxy *ResourceProxy = FSlateDataPayload::ResourceManager->GetShaderResource(*MyBrush);
+        FSlateResourceHandle Handle = FSlateApplication::Get().GetRenderer()->GetResourceHandle(*MyBrush);
+
+        FVector2D UVCenter = FVector2D::ZeroVector;
+        FVector2D UVRadius = FVector2D(1, 1);
+        if (ResourceProxy != nullptr)
+        {
+            UVRadius = 0.5f*ResourceProxy->SizeUV;
+            UVCenter = ResourceProxy->StartUV + UVRadius;
+        }
+
+        // Make a triangle fan in the area allotted
+        const int NumTris = 12;
+        TArray<FSlateVertex> Verts;
+        Verts.Reserve(NumTris * 3);
+
+        // Center Vertex
+        Verts.AddZeroed();
+        {
+            FSlateVertex& NewVert = Verts.Last();
+            NewVert.Position[0] = Center.X;
+            NewVert.Position[1] = Center.Y;
+            NewVert.TexCoords[0] = UVCenter.X;
+            NewVert.TexCoords[1] = UVCenter.Y;
+            NewVert.TexCoords[2] = NewVert.TexCoords[3] = 1.0f;
+            NewVert.Color = FColor::White;
+            NewVert.ClipRect = FSlateRotatedRect(MyClippingRect);
+        }
+
+        for (int i = 0; i < NumTris; ++i)
+        {
+            Verts.AddZeroed();
+            {
+                const float Angle = (2 * PI*i) / NumTris;
+                const FVector2D EdgeDirection(FMath::Cos(Angle), FMath::Sin(Angle));
+                const FVector2D Edge(Radius*EdgeDirection);
+                FSlateVertex& NewVert = Verts.Last();
+                NewVert.Position[0] = Center.X + Edge.X;
+                NewVert.Position[1] = Center.Y + Edge.Y;
+                NewVert.TexCoords[0] = UVCenter.X + UVRadius.X*EdgeDirection.X;
+                NewVert.TexCoords[1] = UVCenter.Y + UVRadius.Y*EdgeDirection.Y;
+                NewVert.TexCoords[2] = NewVert.TexCoords[3] = 1.0f;
+                NewVert.Color = FColor::White;
+                NewVert.ClipRect = FSlateRotatedRect(MyClippingRect);
+            }
+        }
+
+        TArray<SlateIndex> Indexes;
+        for (int i = 1; i <= NumTris; ++i)
+        {
+            Indexes.Add(0);
+            Indexes.Add(i);
+            Indexes.Add((i + 1 > 12) ? (1) : (i + 1));
+        }
+
+        FSlateDrawElement::MakeCustomVerts(OutDrawElements, LayerId, Handle, Verts, Indexes, nullptr, 0, 0);
+    }
+
+    {
+        const FText Text = LOCTEXT("TestText", "The quick brown fox jumps over the lazy dog 0123456789");
+        uint32 FontSize = 14;
+        FSlateFontInfo FontInfo = FCoreStyle::Get().GetFontStyle("ToolTip.Font");
+        FontInfo.OutlineSettings.OutlineColor = FLinearColor::Blue;
+        FontInfo.OutlineSettings.OutlineSize = 2;
+
+        FSlateDrawElement::MakeText(
+            OutDrawElements,
+            LayerId,
+            AllottedGeometry.ToPaintGeometry(FVector2D(200.0f, 200.0f), AllottedGeometry.Size, 1.0f),
+            Text.ToString(),
+            FontInfo,
+            MyClippingRect,
+            ESlateDrawEffect::DisabledEffect,
+            FColor(0, 255, 255)
+        );
+    }
+
+    {
+        TArray<FSlateGradientStop> GradientStops;
+
+        GradientStops.Add(FSlateGradientStop(FVector2D(AllottedGeometry.Size.X*.1f, 0), FColor::Yellow));
+        GradientStops.Add(FSlateGradientStop(FVector2D(AllottedGeometry.Size.X*.25f, 0), FColor::Magenta));
+        GradientStops.Add(FSlateGradientStop(FVector2D(AllottedGeometry.Size.X*.75f, 0), FColor::Blue));
+        GradientStops.Add(FSlateGradientStop(FVector2D(AllottedGeometry.Size.X*0.9f, 0), FColor::Green));
+
+        FSlateDrawElement::MakeGradient(
+            OutDrawElements,
+            LayerId,
+            AllottedGeometry.ToPaintGeometry(FVector2D(400.0f, 200.0f), FVector2D(200.0f, 200.0f)),
+            GradientStops,
+            Orient_Vertical,
+            MyClippingRect,
+            ESlateDrawEffect::None
+        );
+
+    }
+
+    {
+        const FVector2D Start(10, 10);
+        const FVector2D StartDir(AllottedGeometry.Size.X * 1000 / 600, 0);
+        const FVector2D End(AllottedGeometry.Size.X / 4, AllottedGeometry.Size.Y - 10);
+        const FVector2D EndDir(AllottedGeometry.Size.X * 1000 / 600, 0);
+
+        FSlateDrawElement::MakeSpline(
+            OutDrawElements,
+            LayerId,
+            AllottedGeometry.ToPaintGeometry(),
+            Start, StartDir,
+            End, EndDir,
+            MyClippingRect,
+            4.0f,
+            ESlateDrawEffect::None,
+            FColor::White
+        );
+
+    }
 
     return LayerId;
 }
@@ -274,13 +420,12 @@ FReply SPaintDemoSurface::OnMouseButtonDown(const FGeometry& MyGeometry, const F
             TestLinePointA = PositionInGraphCoord;
             bIsDrawingLine = true;
         }
-       
+
         GEngine->AddOnScreenDebugMessage(-1, 4.0f, FColor::Red,
             FString::Printf(TEXT("%s - %s"), *MouseDownPositionInScreenCoord.ToString(), *PositionInGraphCoord.ToString())
         );
-        
     }
-  
+
     return FReply::Unhandled();
 }
 

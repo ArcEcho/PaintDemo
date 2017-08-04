@@ -68,13 +68,14 @@ TSharedRef<FSlateStyleSet> FPaintDemoStyle::Create()
 
 
     Style.Set("SolidBackground", new IMAGE_BRUSH("GraphPanel_SolidBackground", FVector2D(16, 16), FLinearColor::White, ESlateBrushTileType::Both));
-    Style.Set("Box", new IMAGE_BRUSH("box", FVector2D(0, 0), FLinearColor::White, ESlateBrushTileType::Both));
+    Style.Set("Box", new IMAGE_BRUSH("box", FVector2D(0, 0), FLinearColor::White, ESlateBrushTileType::Type::NoTile));
     Style.Set("GridLineColor", FLinearColor(0.035f, 0.035f, 0.035f));
     Style.Set("GridRuleColor", FLinearColor(0.008f, 0.008f, 0.008f));
     Style.Set("GridCenterColor", FLinearColor(0.000f, 0.000f, 0.000f));
 
     Style.Set("GridRulePeriod", 10.0f); // should be a strictly positive integral value
 
+    Style.Set("TestCircleColor", FLinearColor(0.000f, 1.000f, 0.000f));
 
     return StyleRef;
 
