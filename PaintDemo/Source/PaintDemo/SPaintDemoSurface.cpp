@@ -220,6 +220,21 @@ int32 SPaintDemoSurface::OnPaint(const FPaintArgs& Args, const FGeometry& Allott
         );
     }
    
+    FVector2D LocalSize{100.0f, 200.0f};
+    FVector2D PositionInGraphCoord{ 10.0f, 10.0f };
+    LocalSize *= GetZoomAmount();
+    FVector2D PositionInPanelCoord = GraphCoordToPanelCoord(PositionInGraphCoord);
+    FSlateLayoutTransform LayoutTransform{ PositionInPanelCoord };
+    FGeometry BoxGeo = AllottedGeometry.MakeChild(LocalSize, LayoutTransform);
+
+    const FSlateBrush* BoxBrush = FPaintDemoStyle::Get().GetBrush(TEXT("Box"));
+    FSlateDrawElement::MakeBox(
+        OutDrawElements,
+        LayerId,
+        BoxGeo.ToPaintGeometry(),
+        BoxBrush,
+        MyClippingRect
+    );
 
     return LayerId;
 }
@@ -360,18 +375,7 @@ void SPaintDemoSurface::ChangeZoomLevel(int32 ZoomLevelDelta, const FVector2D& W
         // Note: This happens even when maxed out at a stop; so the user sees the animation and knows that they're at max zoom in/out
         ZoomLevelFade.Play(this->AsShared());
 
-        // Re-center the screen so that it feels like zooming around the cursor.
-        {
-            FSlateRect GraphBounds = ComputeSensibleBounds();
-
-            // Make sure we are not zooming into/out into emptiness; otherwise the user will get lost..
-            const FVector2D ClampedPointToMaintainGraphSpace(
-                FMath::Clamp(PointToMaintainGraphSpace.X, GraphBounds.Left, GraphBounds.Right),
-                FMath::Clamp(PointToMaintainGraphSpace.Y, GraphBounds.Top, GraphBounds.Bottom)
-            );
-
-            this->ViewOffset = ClampedPointToMaintainGraphSpace - WidgetSpaceZoomOrigin / GetZoomAmount();
-        }
+        this->ViewOffset = PointToMaintainGraphSpace - WidgetSpaceZoomOrigin / GetZoomAmount();
     }
 }
 
