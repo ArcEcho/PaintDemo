@@ -140,6 +140,8 @@ void SPaintDemoSurface::Construct(const FArguments& InArgs)
     TestLinePointB = FVector2D::ZeroVector;
 
 
+    bIsDrawingLine = false;
+
     ConstructSequence();
 }
 
@@ -180,19 +182,6 @@ void SPaintDemoSurface::Tick(const FGeometry& AllottedGeometry, const double InC
             RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SPaintDemoSurface::HandleZoomToFit));
         }
     }
-
-
-    static float AccTime = 0.0f;
-    AccTime += InDeltaTime;
-    TestLinePointA = FVector2D(400.0f, 400.0f);
-    TestLinePointB.X = 200.0f * FMath::Sin(AccTime) + 400.0f;
-    TestLinePointB.Y = 200.0f * FMath::Cos(AccTime)+ 400.0f;
-
-    const FVector2D ZeroSpace = GraphCoordToPanelCoord(FVector2D::ZeroVector);
-    TestLinePointA = GraphCoordToPanelCoord(TestLinePointA);
-    TestLinePointB = GraphCoordToPanelCoord(TestLinePointB);
-
-    UE_LOG(LogTemp, Log, TEXT("%f %f %f %s"), InCurrentTime, InDeltaTime, AccTime, *ZeroSpace.ToString());
 }
 
 FCursorReply SPaintDemoSurface::OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const
@@ -211,32 +200,26 @@ int32 SPaintDemoSurface::OnPaint(const FPaintArgs& Args, const FGeometry& Allott
     PaintBackgroundAsLines(BackgroundImage, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId);
 
     SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
-
-    const float Phase = Curve.GetLerp() * 2 * PI;
-
-    TArray<FVector2D> LinePoints;
-    LinePoints.AddUninitialized(2);
-    LinePoints[0] = TestLinePointA;
-    LinePoints[1] = TestLinePointB;
     
-    FSlateDrawElement::MakeLines(
-        OutDrawElements,
-        LayerId,
-        AllottedGeometry.ToPaintGeometry(),
-        LinePoints,
-        MyClippingRect,
-        ESlateDrawEffect::None,
-        FLinearColor::Red
-    );
+    for(auto & Line : LineList)
+    {
+        
+        TArray<FVector2D> LinePoints;
+        LinePoints.AddUninitialized(2);
+        LinePoints[0] = GraphCoordToPanelCoord( Line.Key);
+        LinePoints[1] = GraphCoordToPanelCoord(Line.Value);
 
-    //FSlateDrawElement::MakeRotatedBox(
-    //    OutDrawElements,
-    //    LayerId,
-    //    AllottedGeometry.ToPaintGeometry(),
-    //    
-    //    );
-
-
+        FSlateDrawElement::MakeLines(
+            OutDrawElements,
+            LayerId,
+            AllottedGeometry.ToPaintGeometry(),
+            LinePoints,
+            MyClippingRect,
+            ESlateDrawEffect::None,
+            FLinearColor::Red
+        );
+    }
+   
 
     return LayerId;
 }
@@ -258,12 +241,31 @@ FReply SPaintDemoSurface::OnMouseButtonDown(const FGeometry& MyGeometry, const F
         MouseDownPositionAbsolute = MouseEvent.GetLastScreenSpacePosition();
     }
 
-    if (FSlateApplication::Get().IsUsingTrackpad())
+    if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
     {
-        TotalMouseDeltaY = 0.0f;
-        ZoomStartOffset = MyGeometry.AbsoluteToLocal(MouseEvent.GetLastScreenSpacePosition());
-    }
+        auto MouseDownPositionInScreenCoord = MouseEvent.GetLastScreenSpacePosition();
+        auto MouseDownPositionInPanelCoord = MyGeometry.AbsoluteToLocal(MouseDownPositionInScreenCoord);
+        auto PositionInGraphCoord = PanelCoordToGraphCoord(MouseDownPositionInPanelCoord);
 
+        if (bIsDrawingLine)
+        {
+            TestLinePointB = PositionInGraphCoord;
+
+            LineList.Push(TPair<FVector2D, FVector2D>(TestLinePointA, TestLinePointB));
+            bIsDrawingLine = false;
+        }
+        else
+        {
+            TestLinePointA = PositionInGraphCoord;
+            bIsDrawingLine = true;
+        }
+       
+        GEngine->AddOnScreenDebugMessage(-1, 4.0f, FColor::Red,
+            FString::Printf(TEXT("%s - %s"), *MouseDownPositionInScreenCoord.ToString(), *PositionInGraphCoord.ToString())
+        );
+        
+    }
+  
     return FReply::Unhandled();
 }
 

@@ -17,31 +17,31 @@ struct FZoomLevelsContainer
     *
     * @return associated scaling value
     */
-    virtual float						GetZoomAmount(int32 InZoomLevel) const = 0;
+    virtual float GetZoomAmount(int32 InZoomLevel) const = 0;
 
     /**
     * @param InZoomAmount scaling value
     *
     * @return nearest ZoomLevel mapping for provided scale value
     */
-    virtual int32						GetNearestZoomLevel(float InZoomAmount) const = 0;
+    virtual int32 GetNearestZoomLevel(float InZoomAmount) const = 0;
 
     /**
     * @param InZoomLevel virtual zoom level value
     *
     * @return associated friendly name
     */
-    virtual FText						GetZoomText(int32 InZoomLevel) const = 0;
+    virtual FText GetZoomText(int32 InZoomLevel) const = 0;
 
     /**
     * @return count of supported zoom levels
     */
-    virtual int32						GetNumZoomLevels() const = 0;
+    virtual int32 GetNumZoomLevels() const = 0;
 
     /**
     * @return the optimal(1:1) zoom level value, default zoom level for the graph
     */
-    virtual int32						GetDefaultZoomLevel() const = 0;
+    virtual int32 GetDefaultZoomLevel() const = 0;
 
     // Necessary for Mac OS X to compile 'delete <pointer_to_this_object>;'
     virtual ~FZoomLevelsContainer(void) {};
@@ -175,4 +175,7 @@ private:
 
     FVector2D TestLinePointA;
     FVector2D TestLinePointB;
+    bool bIsDrawingLine;
+
+    TArray<TPair<FVector2D, FVector2D>> LineList;
 };
