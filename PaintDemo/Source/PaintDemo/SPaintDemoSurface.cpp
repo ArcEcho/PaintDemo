@@ -203,7 +203,6 @@ int32 SPaintDemoSurface::OnPaint(const FPaintArgs& Args, const FGeometry& Allott
 
     for (auto & Line : LineList)
     {
-
         TArray<FVector2D> LinePoints;
         LinePoints.AddUninitialized(2);
         LinePoints[0] = GraphCoordToPanelCoord(Line.Key);
@@ -216,7 +215,9 @@ int32 SPaintDemoSurface::OnPaint(const FPaintArgs& Args, const FGeometry& Allott
             LinePoints,
             MyClippingRect,
             ESlateDrawEffect::None,
-            FLinearColor::Red
+            FLinearColor::Red,
+            true,
+            5.0f
         );
     }
 
@@ -359,7 +360,6 @@ int32 SPaintDemoSurface::OnPaint(const FPaintArgs& Args, const FGeometry& Allott
             MyClippingRect,
             ESlateDrawEffect::None
         );
-
     }
 
     {
@@ -375,11 +375,51 @@ int32 SPaintDemoSurface::OnPaint(const FPaintArgs& Args, const FGeometry& Allott
             Start, StartDir,
             End, EndDir,
             MyClippingRect,
-            4.0f,
+            50.0f,
             ESlateDrawEffect::None,
             FColor::White
         );
+    }
 
+    {
+        TArray<FVector2D> LinePoints;
+        LinePoints.Add(FVector2D(300.0f, 330.0f));
+        LinePoints.Add( FVector2D(400.0f,330.0f));
+        LinePoints.Add(FVector2D(500.0f, 550.0f));
+        LinePoints.Add( FVector2D(400.0f, 670.0f));
+
+        FSlateDrawElement::MakeLines(
+            OutDrawElements,
+            LayerId,
+            AllottedGeometry.ToPaintGeometry(),
+            LinePoints,
+            MyClippingRect,
+            ESlateDrawEffect::None,
+            FLinearColor::Green,
+            true,
+            50.0f
+        );
+    }
+
+    {
+        TArray<FVector2D> LinePoints;
+        LinePoints.Add(FVector2D(310.0f, 330.0f));
+        LinePoints.Add(FVector2D(410.0f, 330.0f));
+        LinePoints.Add(FVector2D(510.0f, 550.0f));
+        LinePoints.Add(FVector2D(410.0f, 670.0f));
+
+
+        FSlateDrawElement::MakeLines(
+            OutDrawElements,
+            LayerId,
+            AllottedGeometry.ToPaintGeometry(),
+            LinePoints,
+            MyClippingRect,
+            ESlateDrawEffect::None,
+            FLinearColor::Blue,
+            true,
+            1.0f
+        );
     }
 
     return LayerId;
