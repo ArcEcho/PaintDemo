@@ -47,6 +47,13 @@ struct FZoomLevelsContainer
     virtual ~FZoomLevelsContainer(void) {};
 };
 
+struct FFloorPlanElement
+{
+    virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const = 0;
+    virtual ~FFloorPlanElement(void) {};
+};
+
+
 /**
  *
  */
@@ -180,4 +187,8 @@ private:
     TArray<TPair<FVector2D, FVector2D>> LineList;
 
     FVector2D CachedMousePositionInPanelCoord;
+
+    TArray<TUniquePtr<FFloorPlanElement>> FloorPlanElementList;
+
+    void ProduceTestWalls();
 };

@@ -7,6 +7,100 @@
 
 #define LOCTEXT_NAMESPACE "PaintDemo"
 
+/////////////////////////////////////////////////////////////////////
+
+
+
+struct FWallElement : public FFloorPlanElement
+{
+
+    int32 Id;
+    FVector2D FirstAnchorPoint;
+    FVector2D SecondAnchorPoint;
+
+    //Topology
+    TArray<int32>  FirstAnchorPointAdjacencyWallKeys;
+    TArray<int32>  SecondAnchorPointAdjacencyWallKeys;
+
+    //Shape
+    //float Length;  //Duplicated?
+    //float Height;  // Necessary?
+    float Thickness;
+
+    virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+    {
+        //TODO now just use four lines to express a wall.
+
+        FVector2D NominalDirection = SecondAnchorPoint - FirstAnchorPoint;
+        FVector HomogeneousNominalDirection(NominalDirection, 0.0f);
+        FVector HomogeneousZDirection(0.0f, 0.0f, 1.0f);
+        FVector HomogeneousNormal = FVector::CrossProduct(HomogeneousNominalDirection, HomogeneousZDirection);
+        FVector2D Normal;
+        Normal.X = HomogeneousNormal.X;
+        Normal.Y = HomogeneousNormal.Y;
+        Normal.Normalize();
+
+        FVector2D VertexA = FirstAnchorPoint + Normal * Thickness * 0.5f;
+        FVector2D VertexB = FirstAnchorPoint - Normal * Thickness * 0.5f;
+        FVector2D VertexC = SecondAnchorPoint - Normal * Thickness * 0.5f;
+        FVector2D VertexD = SecondAnchorPoint + Normal * Thickness * 0.5f;
+
+        TArray<FVector2D> LinePoints;
+        LinePoints.Add(VertexA);
+        LinePoints.Add(VertexB);
+        LinePoints.Add(VertexC);
+        LinePoints.Add(VertexD);
+        LinePoints.Add(VertexA);
+
+        FSlateDrawElement::MakeLines(
+            OutDrawElements,
+            LayerId,
+            AllottedGeometry.ToPaintGeometry(),
+            LinePoints,
+            MyClippingRect,
+            ESlateDrawEffect::None,
+            FLinearColor::Red,
+            false,
+            1.0f
+        );
+
+
+        return LayerId;
+    }
+
+};
+
+void SPaintDemoSurface::ProduceTestWalls()
+{
+    {
+        FWallElement WallElement;
+        WallElement.FirstAnchorPoint = FVector2D(500.0f, 800.0f);
+        WallElement.SecondAnchorPoint = FVector2D(800.0f, 800.0f);
+        WallElement.Thickness = 50.0f;
+
+        FloorPlanElementList.Add(MakeUnique<FWallElement>(WallElement));
+    }
+
+    {
+        FWallElement WallElement;
+        WallElement.FirstAnchorPoint = FVector2D(400.0f, 800.0f);
+        WallElement.SecondAnchorPoint = FVector2D(800.0f, 400.0f);
+        WallElement.Thickness = 10.0f;
+
+        FloorPlanElementList.Add(MakeUnique<FWallElement>(WallElement));
+    }
+}
+struct FWindowElement
+{
+
+};
+
+struct FDoorElement
+{
+
+};
+
+/////////////////////////////////////////////////////////////////////
 struct FZoomLevelEntry
 {
 public:
@@ -130,6 +224,8 @@ void SPaintDemoSurface::Construct(const FArguments& InArgs)
     bIsDrawingLine = false;
 
     ConstructSequence();
+
+    ProduceTestWalls();
 }
 
 EActiveTimerReturnType SPaintDemoSurface::HandleZoomToFit(double InCurrentTime, float InDeltaTime)
@@ -151,6 +247,7 @@ EActiveTimerReturnType SPaintDemoSurface::HandleZoomToFit(double InCurrentTime, 
 
     return EActiveTimerReturnType::Continue;
 }
+
 
 void SPaintDemoSurface::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
@@ -369,9 +466,9 @@ int32 SPaintDemoSurface::OnPaint(const FPaintArgs& Args, const FGeometry& Allott
     {
         TArray<FVector2D> LinePoints;
         LinePoints.Add(FVector2D(300.0f, 330.0f));
-        LinePoints.Add( FVector2D(400.0f,330.0f));
+        LinePoints.Add(FVector2D(400.0f, 330.0f));
         LinePoints.Add(FVector2D(500.0f, 550.0f));
-        LinePoints.Add( FVector2D(400.0f, 670.0f));
+        LinePoints.Add(FVector2D(400.0f, 670.0f));
 
         FSlateDrawElement::MakeLines(
             OutDrawElements,
@@ -505,8 +602,39 @@ int32 SPaintDemoSurface::OnPaint(const FPaintArgs& Args, const FGeometry& Allott
                 true,
                 1.0f
             );
+
+            auto MM = (V + CachedMousePositionInPanelCoord) * 0.5f;
+            float L = FVector2D::Distance(V, CachedMousePositionInPanelCoord);
+            
+
+            const FText Text = FText::FromString(FString::Printf(TEXT("Length: %fm"), L));
+            uint32 FontSize = 14;
+            FSlateFontInfo FontInfo = FCoreStyle::Get().GetFontStyle("ToolTip.Font");
+            FontInfo.OutlineSettings.OutlineColor = FLinearColor::Green;
+
+            FSlateDrawElement::MakeText(
+                OutDrawElements,
+                LayerId,
+                AllottedGeometry.ToPaintGeometry(MM, AllottedGeometry.Size, 1.0f),
+                Text.ToString(),
+                FontInfo,
+                MyClippingRect,
+                ESlateDrawEffect::None,
+                FColor(0, 255, 255)
+            );
+
+
         }
-      
+
+    }
+
+
+
+    {
+        for (auto &Element : FloorPlanElementList)
+        {
+            Element->OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+        }
     }
 
 
