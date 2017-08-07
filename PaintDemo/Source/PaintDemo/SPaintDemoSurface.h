@@ -178,4 +178,6 @@ private:
     bool bIsDrawingLine;
 
     TArray<TPair<FVector2D, FVector2D>> LineList;
+
+    FVector2D CachedMousePositionInPanelCoord;
 };
