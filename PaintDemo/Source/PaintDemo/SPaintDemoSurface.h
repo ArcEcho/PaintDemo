@@ -57,7 +57,7 @@ struct FFloorPlanElement
 /**
  *
  */
-class  SPaintDemoSurface : public SCompoundWidget
+class  SPaintDemoSurface : public SCompoundWidget 
 {
 public:
     SLATE_BEGIN_ARGS(SPaintDemoSurface)
@@ -83,6 +83,9 @@ public:
     virtual bool SupportsKeyboardFocus() const override;
     // End of Swidget interface
 
+    FVector2D GraphCoordToPanelCoord(const FVector2D& GraphSpaceCoordinate) const;
+    FVector2D PanelCoordToGraphCoord(const FVector2D& PanelSpaceCoordinate) const;
+
 protected:
     void PaintBackgroundAsLines(const FSlateBrush* BackgroundImage, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32& DrawLayerId) const;
 
@@ -106,8 +109,6 @@ protected:
 
     FSlateRect ComputeSensibleBounds() const;
 
-    FVector2D GraphCoordToPanelCoord(const FVector2D& GraphSpaceCoordinate) const;
-    FVector2D PanelCoordToGraphCoord(const FVector2D& PanelSpaceCoordinate) const;
 
 protected:
     virtual FSlateRect ComputeAreaBounds() const;
@@ -187,6 +188,7 @@ private:
     TArray<TPair<FVector2D, FVector2D>> LineList;
 
     FVector2D CachedMousePositionInPanelCoord;
+    FVector2D CachedMousePositionInGraphCoord;
 
     TArray<TUniquePtr<FFloorPlanElement>> FloorPlanElementList;
 

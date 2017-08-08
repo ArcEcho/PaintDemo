@@ -13,23 +13,31 @@
 
 struct FWallElement : public FFloorPlanElement
 {
+    TWeakPtr<SPaintDemoSurface> Owner;
+
+    FWallElement(TSharedPtr<SPaintDemoSurface> InOwner)
+        : Owner{ InOwner }
+    {
+
+    }
+
 
     int32 Id;
     FVector2D FirstAnchorPoint;
     FVector2D SecondAnchorPoint;
 
-    //Topology
+    // Topology
     TArray<int32>  FirstAnchorPointAdjacencyWallKeys;
     TArray<int32>  SecondAnchorPointAdjacencyWallKeys;
 
-    //Shape
-    //float Length;  //Duplicated?
+    // Shape
+    //float Length;  // Duplicated?
     //float Height;  // Necessary?
     float Thickness;
 
     virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
     {
-        //TODO now just use four lines to express a wall.
+        // TODO now just use four lines to express a wall.
 
         FVector2D NominalDirection = SecondAnchorPoint - FirstAnchorPoint;
         FVector HomogeneousNominalDirection(NominalDirection, 0.0f);
@@ -45,12 +53,13 @@ struct FWallElement : public FFloorPlanElement
         FVector2D VertexC = SecondAnchorPoint - Normal * Thickness * 0.5f;
         FVector2D VertexD = SecondAnchorPoint + Normal * Thickness * 0.5f;
 
+        
         TArray<FVector2D> LinePoints;
-        LinePoints.Add(VertexA);
-        LinePoints.Add(VertexB);
-        LinePoints.Add(VertexC);
-        LinePoints.Add(VertexD);
-        LinePoints.Add(VertexA);
+        LinePoints.Add(Owner.Pin()->GraphCoordToPanelCoord(VertexA));
+        LinePoints.Add(Owner.Pin()->GraphCoordToPanelCoord(VertexB));
+        LinePoints.Add(Owner.Pin()->GraphCoordToPanelCoord(VertexC));
+        LinePoints.Add(Owner.Pin()->GraphCoordToPanelCoord(VertexD));
+        LinePoints.Add(Owner.Pin()->GraphCoordToPanelCoord(VertexA));
 
         FSlateDrawElement::MakeLines(
             OutDrawElements,
@@ -64,7 +73,6 @@ struct FWallElement : public FFloorPlanElement
             1.0f
         );
 
-
         return LayerId;
     }
 
@@ -73,7 +81,7 @@ struct FWallElement : public FFloorPlanElement
 void SPaintDemoSurface::ProduceTestWalls()
 {
     {
-        FWallElement WallElement;
+        FWallElement WallElement(SharedThis(this));
         WallElement.FirstAnchorPoint = FVector2D(500.0f, 800.0f);
         WallElement.SecondAnchorPoint = FVector2D(800.0f, 800.0f);
         WallElement.Thickness = 50.0f;
@@ -81,14 +89,14 @@ void SPaintDemoSurface::ProduceTestWalls()
         FloorPlanElementList.Add(MakeUnique<FWallElement>(WallElement));
     }
 
-    {
-        FWallElement WallElement;
-        WallElement.FirstAnchorPoint = FVector2D(400.0f, 800.0f);
-        WallElement.SecondAnchorPoint = FVector2D(800.0f, 400.0f);
-        WallElement.Thickness = 10.0f;
+    //{
+    //    FWallElement WallElement;
+    //    WallElement.FirstAnchorPoint = FVector2D(400.0f, 800.0f);
+    //    WallElement.SecondAnchorPoint = FVector2D(800.0f, 400.0f);
+    //    WallElement.Thickness = 10.0f;
 
-        FloorPlanElementList.Add(MakeUnique<FWallElement>(WallElement));
-    }
+    //    FloorPlanElementList.Add(MakeUnique<FWallElement>(WallElement));
+    //}
 }
 struct FWindowElement
 {
@@ -604,7 +612,7 @@ int32 SPaintDemoSurface::OnPaint(const FPaintArgs& Args, const FGeometry& Allott
             );
 
             auto MM = (V + CachedMousePositionInPanelCoord) * 0.5f;
-            float L = FVector2D::Distance(V, CachedMousePositionInPanelCoord);
+            float L = FVector2D::Distance(TestLinePointA, CachedMousePositionInGraphCoord);
             
 
             const FText Text = FText::FromString(FString::Printf(TEXT("Length: %fm"), L));
@@ -627,7 +635,6 @@ int32 SPaintDemoSurface::OnPaint(const FPaintArgs& Args, const FGeometry& Allott
         }
 
     }
-
 
 
     {
@@ -668,7 +675,17 @@ FReply SPaintDemoSurface::OnMouseButtonDown(const FGeometry& MyGeometry, const F
         {
             TestLinePointB = PositionInGraphCoord;
 
-            LineList.Push(TPair<FVector2D, FVector2D>(TestLinePointA, TestLinePointB));
+            //LineList.Push(TPair<FVector2D, FVector2D>(TestLinePointA, TestLinePointB));
+
+            {
+                FWallElement WallElement(SharedThis(this));
+                WallElement.FirstAnchorPoint = TestLinePointA;
+                WallElement.SecondAnchorPoint = TestLinePointB;
+                WallElement.Thickness = 30.0f;
+
+                FloorPlanElementList.Add(MakeUnique<FWallElement>(WallElement));
+            }
+
             bIsDrawingLine = false;
         }
         else
@@ -716,6 +733,7 @@ FReply SPaintDemoSurface::OnMouseMove(const FGeometry& MyGeometry, const FPointe
     {
         auto MousePositionInScreenCoord = MouseEvent.GetLastScreenSpacePosition();
         CachedMousePositionInPanelCoord = MyGeometry.AbsoluteToLocal(MousePositionInScreenCoord);
+        CachedMousePositionInGraphCoord = PanelCoordToGraphCoord(CachedMousePositionInPanelCoord);
     }
 
     return FReply::Unhandled();
