@@ -4,20 +4,17 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
-#include "PaintDemoGameModeBase.generated.h"
+#include "MyProjectGameModeBase.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class PAINTDEMO_API APaintDemoGameModeBase : public AGameModeBase
+class MYPROJECT_API AMyProjectGameModeBase : public AGameModeBase
 {
 	GENERATED_BODY()
 	
 	
-public:
-    virtual void BeginPlay() override;
 	
-private:
-    TSharedPtr<SWidget> Widget;
+	
 };

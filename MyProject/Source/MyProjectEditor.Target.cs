@@ -3,12 +3,12 @@
 using UnrealBuildTool;
 using System.Collections.Generic;
 
-public class PaintDemoEditorTarget : TargetRules
+public class MyProjectEditorTarget : TargetRules
 {
-	public PaintDemoEditorTarget(TargetInfo Target) : base(Target)
+	public MyProjectEditorTarget(TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Editor;
 
-		ExtraModuleNames.AddRange( new string[] { "PaintDemo" } );
+		ExtraModuleNames.AddRange( new string[] { "MyProject" } );
 	}
 }

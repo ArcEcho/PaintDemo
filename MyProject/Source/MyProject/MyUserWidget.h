@@ -6,13 +6,13 @@
 #include "Widget.h"
 #include "MyUserWidget.generated.h"
 
-class SPaintDemoView;
+class SPaintDemoWidget;
 
 /**
  * 
  */
 UCLASS()
-class PAINTDEMO_API UMyUserWidget : public UWidget
+class  UMyUserWidget : public UWidget
 {
 	GENERATED_BODY()
 	
@@ -21,7 +21,7 @@ public:
 
 
 protected:
-    TSharedPtr<SPaintDemoView> PaintDemoView;
+    TSharedPtr<SPaintDemoWidget> PaintDemoWidget;
     virtual TSharedRef<SWidget> RebuildWidget() override;
 	
 };
